@@ -236,6 +236,10 @@ class Ui_Dialog(object):
 		self.LBaseFolder = QtWidgets.QLabel(self.MainSettings)
 		self.LBaseFolder.setGeometry(QtCore.QRect(460, 58, 381, 21))
 		self.LBaseFolder.setObjectName("LBaseFolder")
+		self.ScriptPosition = QtWidgets.QCheckBox(self.MainSettings)
+		self.ScriptPosition.setGeometry(QtCore.QRect(20, 60, 371, 17))
+		self.ScriptPosition.setChecked(True)
+		self.ScriptPosition.setObjectName("ScriptPosition")
 		self.LParentDirectories = QtWidgets.QLabel(self.MainSettings)
 		self.LParentDirectories.setGeometry(QtCore.QRect(510, 58, 191, 21))
 		self.LParentDirectories.setObjectName("LParentDirectories")
@@ -404,6 +408,8 @@ class Ui_Dialog(object):
 		self.ChooseBaseFolderButton.setText(_translate("Dialog", "folder"))
 		self.LBaseFolder.setToolTip(_translate("Dialog", "<html><head/><body><p>Base folder that is cut off the front of every media path. Everything below it is recreated 1:1 in the collection folder, so the collected files can be copied back to their original location.<br/><br/>For instance:<br/>With the base folder Q:/proj/myproject, the file Q:/proj/myproject/comp/plates/file_####.exr will have the following destination in the final collected path:<br/><br/>../comp/plates/file_####.exr<br/><br/>Media outside the base folder is collected with its full path in ../_EXTERNAL/.<br/>Path substitutions from the Nuke preferences are applied, so a Windows path also works on macOS and Linux.</p></body></html>"))
 		self.LBaseFolder.setText(_translate("Dialog", "media outside the base folder goes to _EXTERNAL/"))
+		self.ScriptPosition.setToolTip(_translate("Dialog", "<html><head/><body><p>Place the Nuke script copies at the position of the original Nuke script in the folder structure, instead of in the root of the collection folder.<br/><br/>The relative relinked copy then links media relative to that position (e.g. ../plates/file_####.exr).</p></body></html>"))
+		self.ScriptPosition.setText(_translate("Dialog", "place nuke script copies at their position in the structure"))
 		self.SettingPages.setTabText(self.SettingPages.indexOf(self.MainSettings), _translate("Dialog", "media"))
 		self.CopyFontDir.setToolTip(_translate("Dialog", "<html><head/><body><p>If the current Nuke script has a custom Project Font Path set in Settings &gt; Node, collect this directory.</p></body></html>"))
 		self.CopyFontDir.setText(_translate("Dialog", "copy font directory (if any)"))
@@ -464,6 +470,7 @@ WIU_ParentDirCount = 3
 WIU_NodeNameFolder = True
 WIU_KeepStructure = False
 WIU_BaseFolder = ''
+WIU_ScriptPosition = True
 WIU_AppPath = ''
 
 WIU_SilentReturn = []
@@ -580,7 +587,7 @@ def RemapPath(pth):
 
 
 
-def _Start(silent = False, nk = '', startnow = False, out = '', nodenamefolder = True, parentdircount = 3, relinked = True, relativerelinked = True, media = True, skipdisablednodes = False, fonts = True, gizmos = True, csvcommas = False, licinteractive = False, keepstructure = False, basefolder = ''):
+def _Start(silent = False, nk = '', startnow = False, out = '', nodenamefolder = True, parentdircount = 3, relinked = True, relativerelinked = True, media = True, skipdisablednodes = False, fonts = True, gizmos = True, csvcommas = False, licinteractive = False, keepstructure = False, basefolder = '', scriptposition = True):
 
 	# reset list
 	global WIU_SilentList
@@ -749,6 +756,7 @@ def _Start(silent = False, nk = '', startnow = False, out = '', nodenamefolder =
 		global WIU_ParentDirCount
 		global WIU_KeepStructure
 		global WIU_BaseFolder
+		global WIU_ScriptPosition
 
 		# set node name folder to argument if the UI is not loaded
 		if silent:
@@ -756,6 +764,7 @@ def _Start(silent = False, nk = '', startnow = False, out = '', nodenamefolder =
 			WIU_ParentDirCount = parentdircount
 			WIU_KeepStructure = keepstructure
 			WIU_BaseFolder = basefolder
+			WIU_ScriptPosition = scriptposition
 
 		# TCL eval
 		fullPath = evalTCL(fullPath)
@@ -820,22 +829,27 @@ def _Start(silent = False, nk = '', startnow = False, out = '', nodenamefolder =
 
 		fileName = fullPath.split('/')[-1]
 
+		# folder for the nuke script copies: the collection root, or the script's own position in the folder structure
+		scriptDir = WIU_PackedPath
+		if i in (-1, -2, -3) and WIU_KeepStructure and WIU_ScriptPosition:
+			scriptDir = os.path.dirname(PackedPath(fullPath))
+
 		# nuke script
 		if i == -1:
 
-			newPath = WIU_PackedPath + '/' + fullPath.split('/')[-1]
+			newPath = scriptDir + '/' + fullPath.split('/')[-1]
 			return newPath
 
 		# nuke script relinked
 		if i == -2:
 
-			newPath = WIU_PackedPath + '/' + os.path.splitext( fileName )[0] + '_RELINKED.nk'
+			newPath = scriptDir + '/' + os.path.splitext( fileName )[0] + '_RELINKED.nk'
 			return newPath
 
 		# nuke script relinked relative
 		if i == -3:
 
-			newPath = WIU_PackedPath + '/' + os.path.splitext( fileName )[0] + '_RELINKED-RELATIVE.nk'
+			newPath = scriptDir + '/' + os.path.splitext( fileName )[0] + '_RELINKED-RELATIVE.nk'
 			return newPath
 
 		# font directory
@@ -1197,9 +1211,10 @@ def _Start(silent = False, nk = '', startnow = False, out = '', nodenamefolder =
 
 				for v in vList:
 
-					# replace path for relinked relative
+					# make path relative to the script for relinked relative (the script can be in a subfolder of the collection)
 					if relinkMethod == 1:
-						v[2] = v[2].replace(os.path.dirname(scriptpath), '[python {nuke.script_directory()}]')
+						relPath = os.path.relpath(v[2], os.path.dirname(scriptpath)).replace('\\', '/')
+						v[2] = '[python {nuke.script_directory()}]/' + relPath + ('/' if v[2].endswith('/') else '')
 
 					pyText += '\n'
 					pyText += 'n = nuke.toNode(' + q + v[0] + q + ')\n'
@@ -1635,12 +1650,13 @@ def _Start(silent = False, nk = '', startnow = False, out = '', nodenamefolder =
 
 
 	# update the labels underneath the lists
-	def UpdateItemInfo(n = False, pd = False, pm = False, bf = False):
+	def UpdateItemInfo(n = False, pd = False, pm = False, bf = False, sp = False):
 
 		global WIU_ParentDirCount
 		global WIU_NodeNameFolder
 		global WIU_KeepStructure
 		global WIU_BaseFolder
+		global WIU_ScriptPosition
 
 		if pd:
 			WIU_ParentDirCount = WParentDirectories.value()
@@ -1651,6 +1667,8 @@ def _Start(silent = False, nk = '', startnow = False, out = '', nodenamefolder =
 			PathModeWidgets()
 		if bf:
 			WIU_BaseFolder = WBaseFolder.text()
+		if sp:
+			WIU_ScriptPosition = WScriptPosition.isChecked()
 
 		# check which list the currently selected item is in, and update its info
 		if WIgnoredLabel.isVisible():
@@ -1841,6 +1859,7 @@ def _Start(silent = False, nk = '', startnow = False, out = '', nodenamefolder =
 		WBaseFolder.setVisible(WIU_KeepStructure)
 		WChooseBaseFolderButton.setVisible(WIU_KeepStructure)
 		WLBaseFolder.setVisible(WIU_KeepStructure)
+		WScriptPosition.setVisible(WIU_KeepStructure)
 
 
 
@@ -1909,6 +1928,7 @@ def _Start(silent = False, nk = '', startnow = False, out = '', nodenamefolder =
 		WBaseFolder.setEnabled(YesOrNo)
 		WChooseBaseFolderButton.setEnabled(YesOrNo)
 		WLBaseFolder.setEnabled(YesOrNo)
+		WScriptPosition.setEnabled(YesOrNo)
 		WRelinkPaths.setEnabled(YesOrNo)
 		WRelativeRelink.setEnabled(YesOrNo)
 		WNodeNameFolder.setEnabled(YesOrNo)
@@ -2140,7 +2160,7 @@ def _Start(silent = False, nk = '', startnow = False, out = '', nodenamefolder =
 		# write first lines of log
 		nukever = str(nuke.NUKE_VERSION_STRING)
 		nukescript  = nuke.root().name() if not silent else nk
-		params = CSV(["Used command-line/python function", str(silent)]) + '\n' + CSV(["Script path", nukescript]) + '\n' + CSV(["Folders with node names", str(WIU_NodeNameFolder)]) + '\n' + CSV(["Parent directory count", str(WIU_ParentDirCount)]) + '\n' + CSV(["Keep folder structure", str(WIU_KeepStructure)]) + '\n' + CSV(["Base folder", WIU_BaseFolder]) + '\n' + CSV(["Relinked", str(WIU_Relink)]) + '\n' + CSV(["Relative relinked", str(WIU_RelinkRelative)]) + '\n' + CSV(["Fonts", str(WIU_Fonts)]) + '\n' + CSV(["Gizmos", str(WIU_Gizmo)]) + '\n' + CSV(["License", 'nuke_i' if getLic() == '-ti' else 'nuke_r'])
+		params = CSV(["Used command-line/python function", str(silent)]) + '\n' + CSV(["Script path", nukescript]) + '\n' + CSV(["Folders with node names", str(WIU_NodeNameFolder)]) + '\n' + CSV(["Parent directory count", str(WIU_ParentDirCount)]) + '\n' + CSV(["Keep folder structure", str(WIU_KeepStructure)]) + '\n' + CSV(["Base folder", WIU_BaseFolder]) + '\n' + CSV(["Nuke scripts at their position", str(WIU_ScriptPosition)]) + '\n' + CSV(["Relinked", str(WIU_Relink)]) + '\n' + CSV(["Relative relinked", str(WIU_RelinkRelative)]) + '\n' + CSV(["Fonts", str(WIU_Fonts)]) + '\n' + CSV(["Gizmos", str(WIU_Gizmo)]) + '\n' + CSV(["License", 'nuke_i' if getLic() == '-ti' else 'nuke_r'])
 		WriteLog( WIU_Title + '\n' + 'Nuke version: ' + nukever + '\n\n' + params + '\n\n\n' + CSV(['TIME', 'STATUS', 'FILE (FROM)', 'FILE (TO)', 'NODE', 'KNOB', 'SIZE', 'RETURN']) + '\n', first = True )
 
 		# copy files
@@ -2526,6 +2546,7 @@ def _Start(silent = False, nk = '', startnow = False, out = '', nodenamefolder =
 		WBaseFolder = window.findChild(QtWidgets.QLineEdit, "BaseFolder")
 		WChooseBaseFolderButton = window.findChild(QtWidgets.QPushButton, "ChooseBaseFolderButton")
 		WLBaseFolder = window.findChild(QtWidgets.QLabel, "LBaseFolder")
+		WScriptPosition = window.findChild(QtWidgets.QCheckBox, "ScriptPosition")
 
 		WCopyFontDir = window.findChild(QtWidgets.QCheckBox, "CopyFontDir")
 		WCopyGizmos = window.findChild(QtWidgets.QCheckBox, "CopyGizmos")
@@ -2574,6 +2595,7 @@ def _Start(silent = False, nk = '', startnow = False, out = '', nodenamefolder =
 		WPathMode.currentIndexChanged.connect(lambda:UpdateItemInfo(pm = True))
 		WBaseFolder.textChanged.connect(lambda:UpdateItemInfo(bf = True))
 		WChooseBaseFolderButton.clicked.connect(lambda:ChooseBaseFolder())
+		WScriptPosition.stateChanged.connect(lambda:UpdateItemInfo(sp = True))
 
 		WCopyFontDir.stateChanged.connect(lambda:AddOnsInList(f = True))
 		WCopyGizmos.stateChanged.connect(lambda:AddOnsInList(g = True))
@@ -2593,6 +2615,7 @@ def _Start(silent = False, nk = '', startnow = False, out = '', nodenamefolder =
 		WIgnoredLabel.setVisible(False)
 		WPathMode.setCurrentIndex(1 if WIU_KeepStructure else 0)
 		WBaseFolder.setText(WIU_BaseFolder)
+		WScriptPosition.setChecked(WIU_ScriptPosition)
 		PathModeWidgets()
 
 
@@ -2614,7 +2637,7 @@ def _Start(silent = False, nk = '', startnow = False, out = '', nodenamefolder =
 
 
 # python function start
-def WrapItUp(fromterminal = False, nk = '', startnow = False, out = '', nodenamefolder = True, parentdircount = 3, relinked = True, relativerelinked = True, media = True, skipdisablednodes = False, fonts = True, gizmos = True, csvcommas = False, licinteractive = False, keepstructure = False, basefolder = ''):
+def WrapItUp(fromterminal = False, nk = '', startnow = False, out = '', nodenamefolder = True, parentdircount = 3, relinked = True, relativerelinked = True, media = True, skipdisablednodes = False, fonts = True, gizmos = True, csvcommas = False, licinteractive = False, keepstructure = False, basefolder = '', scriptposition = True):
 
 	global WIU_AppPath
 
@@ -2677,6 +2700,7 @@ def WrapItUp(fromterminal = False, nk = '', startnow = False, out = '', nodename
 				['Parent dir count', parentdircount],
 				['Keep structure', keepstructure],
 				['Base folder\t', basefolder],
+				['Script position', scriptposition],
 				['Relink\t', relinked],
 				['Relink relative', relativerelinked],
 				['media\t', media],
@@ -2693,7 +2717,7 @@ def WrapItUp(fromterminal = False, nk = '', startnow = False, out = '', nodename
 			print(param)
 
 			# only print preview
-			returnedFiles = _Start(silent, nk, False, out, nodenamefolder, parentdircount, relinked, relativerelinked, media, skipdisablednodes, fonts, gizmos, csvcommas, licinteractive, keepstructure, basefolder)
+			returnedFiles = _Start(silent, nk, False, out, nodenamefolder, parentdircount, relinked, relativerelinked, media, skipdisablednodes, fonts, gizmos, csvcommas, licinteractive, keepstructure, basefolder, scriptposition)
 			returnedStr = ''
 			for i in returnedFiles:
 				returnedStr += '\n' + WIU_Log + str(i)
@@ -2708,7 +2732,7 @@ def WrapItUp(fromterminal = False, nk = '', startnow = False, out = '', nodename
 				print('\n' + WIU_Log + 'Starting...' + '\n')
 
 				# begin
-				_Start(silent, nk, startnow, out, nodenamefolder, parentdircount, relinked, relativerelinked, media, skipdisablednodes, fonts, gizmos, csvcommas, licinteractive, keepstructure, basefolder)
+				_Start(silent, nk, startnow, out, nodenamefolder, parentdircount, relinked, relativerelinked, media, skipdisablednodes, fonts, gizmos, csvcommas, licinteractive, keepstructure, basefolder, scriptposition)
 
 	
 	# if running with UI in Nuke
@@ -2811,6 +2835,14 @@ if __name__ == "__main__":
 				del c[index]
 				break
 
+		# nuke script copies in the collection root instead of at their position in the structure
+		aScriptPosition = True
+		for index, arg in enumerate(c):
+			if arg in ['-nkroot']:
+				aScriptPosition = False
+				del c[index]
+				break
+
 		# relinked
 		aReli = True
 		for index, arg in enumerate(c):
@@ -2873,9 +2905,9 @@ if __name__ == "__main__":
 
 		# error handling
 		if err:
-			print(WIU_Log + 'Usage:\n-nk <nukescript path> (required)\n-o <output folder> (required)\n-s (start now - if not, only a preview list of the files to be processed will be returned)\n-n (disable: place media in node name folder)\n-pd <parent directory count> (default: 3)\n-ks (keep the full folder structure instead of the last parent directories)\n-base <base folder> (cut this folder off the front of media paths and keep the structure below it, implies -ks)\n-r (disable: make relinked .nk)\n-rr (disable: make relative relinked .nk)\n-m (disable: collect media)\n-f (disable: collect font folder)\n-g (disable: collect gizmos)\n-csvcomma (use commas instead of semicolons as the CSV separator)')
+			print(WIU_Log + 'Usage:\n-nk <nukescript path> (required)\n-o <output folder> (required)\n-s (start now - if not, only a preview list of the files to be processed will be returned)\n-n (disable: place media in node name folder)\n-pd <parent directory count> (default: 3)\n-ks (keep the full folder structure instead of the last parent directories)\n-base <base folder> (cut this folder off the front of media paths and keep the structure below it, implies -ks)\n-nkroot (with -ks: place the nuke script copies in the output folder root instead of at their position in the structure)\n-r (disable: make relinked .nk)\n-rr (disable: make relative relinked .nk)\n-m (disable: collect media)\n-f (disable: collect font folder)\n-g (disable: collect gizmos)\n-csvcomma (use commas instead of semicolons as the CSV separator)')
 		else:
-			WrapItUp(fromterminal = True, nk = aNK, startnow = aStart, out = aOut, nodenamefolder = aNodeName, parentdircount = aDirCount, relinked = aReli, relativerelinked = aReliRela, media = aMedia, skipdisablednodes = aSkipDisabledNodes, fonts = aFonts, gizmos = aGizmos, csvcommas = aCSV, licinteractive = aLicInteractive, keepstructure = aKeepStructure, basefolder = aBaseFolder)
+			WrapItUp(fromterminal = True, nk = aNK, startnow = aStart, out = aOut, nodenamefolder = aNodeName, parentdircount = aDirCount, relinked = aReli, relativerelinked = aReliRela, media = aMedia, skipdisablednodes = aSkipDisabledNodes, fonts = aFonts, gizmos = aGizmos, csvcommas = aCSV, licinteractive = aLicInteractive, keepstructure = aKeepStructure, basefolder = aBaseFolder, scriptposition = aScriptPosition)
 
 
 	else:
