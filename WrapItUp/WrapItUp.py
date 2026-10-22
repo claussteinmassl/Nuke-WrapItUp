@@ -1038,7 +1038,15 @@ def _Start(silent = False, nk = '', startnow = False, out = '', nodenamefolder =
 				os.makedirs( ToParentFolder )
 
 			# copy file
-			shutil.copy2(fileFrom, fileTo)
+			shutil.copyfile(fileFrom, fileTo)
+
+			# copy metadata, system flags can not be copied from some file systems (e.g. SMB shares on macOS): keep permissions and times only
+			try:
+				shutil.copystat(fileFrom, fileTo)
+			except OSError:
+				shutil.copymode(fileFrom, fileTo)
+				stat = os.stat(fileFrom)
+				os.utime(fileTo, (stat.st_atime, stat.st_mtime))
 
 
 			# update init.py/menu.py file
