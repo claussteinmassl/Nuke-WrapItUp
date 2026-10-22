@@ -20,6 +20,8 @@ Tested on Windows, Mac OS, and Linux (CentOS).
 
 - Three copies of the Nuke script will be collected: the original, a relinked one, and a relative-relinked one (using a python-embedded TCL expression). The relative-relinked Nuke script will stay linked to its media, even if you move it to a completely different machine - as long as the media is right next to it.
 - Media files with the path variables ####..., %**d (printf), %v and %V are supported.
+- Two ways to build the collected media paths: keep the last parent directories of each file in /MEDIA (default), or keep the complete folder structure below a base folder (e.g. Q:/proj/myproject) directly in the collection folder, so collected files can be copied back to their original location. Media outside the base folder is collected with its full path in /_EXTERNAL. In the terminal, use -ks to keep the folder structure and -base <folder> to set the base folder.
+- Path substitutions from Nuke's preferences (Preferences > General > Path Substitutions) are applied, so scripts saved on another platform are collected correctly.
 - Gizmos will be collected, and the necessary menu.py and init.py files will be generated. Simply place these files in your .nuke folder to install them.
 - A detailed CSV log file is generated to review which files were copied.
 
@@ -63,6 +65,12 @@ If you encounter any issues (or if you have feedback/ideas), [let me know (maxva
 <br><br>
 
 ## Updates
+
+### 2.4 (fork)
+
+- Added path mode 'keep folder structure below base folder' (UI dropdown, -ks and -base flags in terminal)
+- Path substitutions from Nuke's preferences are applied to all collected paths
+- Fixed copy errors for files with system flags that can not be copied (e.g. SMB shares on macOS)
 
 ### 2.3
 

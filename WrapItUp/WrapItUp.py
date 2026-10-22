@@ -1,11 +1,11 @@
 # Max van Leeuwen - maxvanleeuwen.com/WrapItUp
-# WrapItUp - 2.3
+# WrapItUp - 2.4
 #
 # Collect all media, gizmos and files associated with a nuke script, and copy it all to a separate folder - along with a relinked duplicate of the nuke script.
 
 
 
-WIU_Title = 'WrapItUp 2.3 - maxvanleeuwen.com'
+WIU_Title = 'WrapItUp 2.4 - maxvanleeuwen.com'
 WIU_Log = '[WrapItUp] '
 
 
@@ -221,11 +221,26 @@ class Ui_Dialog(object):
 		self.RelativeRelink.setGeometry(QtCore.QRect(20, 40, 321, 17))
 		self.RelativeRelink.setChecked(True)
 		self.RelativeRelink.setObjectName("RelativeRelink")
+		self.PathMode = QtWidgets.QComboBox(self.MainSettings)
+		self.PathMode.setGeometry(QtCore.QRect(460, 8, 301, 22))
+		self.PathMode.setObjectName("PathMode")
+		self.PathMode.addItem("")
+		self.PathMode.addItem("")
+		self.BaseFolder = QtWidgets.QLineEdit(self.MainSettings)
+		self.BaseFolder.setGeometry(QtCore.QRect(460, 34, 301, 21))
+		self.BaseFolder.setObjectName("BaseFolder")
+		self.ChooseBaseFolderButton = QtWidgets.QPushButton(self.MainSettings)
+		self.ChooseBaseFolderButton.setGeometry(QtCore.QRect(766, 33, 75, 23))
+		self.ChooseBaseFolderButton.setAutoDefault(False)
+		self.ChooseBaseFolderButton.setObjectName("ChooseBaseFolderButton")
+		self.LBaseFolder = QtWidgets.QLabel(self.MainSettings)
+		self.LBaseFolder.setGeometry(QtCore.QRect(460, 58, 381, 21))
+		self.LBaseFolder.setObjectName("LBaseFolder")
 		self.LParentDirectories = QtWidgets.QLabel(self.MainSettings)
-		self.LParentDirectories.setGeometry(QtCore.QRect(510, 40, 191, 21))
+		self.LParentDirectories.setGeometry(QtCore.QRect(510, 58, 191, 21))
 		self.LParentDirectories.setObjectName("LParentDirectories")
 		self.ParentDirectories = QtWidgets.QSpinBox(self.MainSettings)
-		self.ParentDirectories.setGeometry(QtCore.QRect(460, 40, 41, 21))
+		self.ParentDirectories.setGeometry(QtCore.QRect(460, 58, 41, 21))
 		self.ParentDirectories.setSuffix("")
 		self.ParentDirectories.setPrefix("")
 		self.ParentDirectories.setMinimum(1)
@@ -233,7 +248,7 @@ class Ui_Dialog(object):
 		self.ParentDirectories.setProperty("value", 3)
 		self.ParentDirectories.setObjectName("ParentDirectories")
 		self.NodeNameFolder = QtWidgets.QCheckBox(self.MainSettings)
-		self.NodeNameFolder.setGeometry(QtCore.QRect(460, 20, 271, 17))
+		self.NodeNameFolder.setGeometry(QtCore.QRect(460, 36, 271, 17))
 		self.NodeNameFolder.setChecked(True)
 		self.NodeNameFolder.setObjectName("NodeNameFolder")
 		self.SettingPages.addTab(self.MainSettings, "")
@@ -380,6 +395,15 @@ class Ui_Dialog(object):
 		self.ParentDirectories.setToolTip(_translate("Dialog", "<html><head/><body><p>The amount of (empty) parent directories to copy over for each found media item.<br/><br/>For instance:<br/>An image sequence in /path/to/image/files/file_####.exr with a parent directory count of 3 will have the following destination in the final collected path:<br/><br/>../MEDIA/image/files/file_####.exr<br/><br/><br/>If the \'place media in folder with node name\' checkbox is unchecked, do not make this number too small.<br/>Fiiles with same-name parent directories might end up overwriting, or merging together.</p></body></html>"))
 		self.NodeNameFolder.setToolTip(_translate("Dialog", "<html><head/><body><p>Place all media items in a subfolder with its corresponding node as that folder\'s name.<br/><br/>This helps finding which media belonged to which node in the new comp, and it is an extra measure against the kind of problems that could arise when parent folders of different media items have the same names.</p></body></html>"))
 		self.NodeNameFolder.setText(_translate("Dialog", "place media in folder with node name"))
+		self.PathMode.setToolTip(_translate("Dialog", "<html><head/><body><p>How the destination path of each media item is built.<br/><br/><b>keep last parent directories</b>: collect media in ../MEDIA/, keeping only the last parent directories of each file.<br/><br/><b>keep folder structure below base folder</b>: recreate the original folder structure below a base folder in the collection folder.</p></body></html>"))
+		self.PathMode.setItemText(0, _translate("Dialog", "keep last parent directories"))
+		self.PathMode.setItemText(1, _translate("Dialog", "keep folder structure below base folder"))
+		self.BaseFolder.setToolTip(_translate("Dialog", "<html><head/><body><p>Base folder that is cut off the front of every media path. Everything below it is recreated 1:1 in the collection folder, so the collected files can be copied back to their original location.<br/><br/>For instance:<br/>With the base folder Q:/proj/myproject, the file Q:/proj/myproject/comp/plates/file_####.exr will have the following destination in the final collected path:<br/><br/>../comp/plates/file_####.exr<br/><br/>Media outside the base folder is collected with its full path in ../_EXTERNAL/.<br/>Path substitutions from the Nuke preferences are applied, so a Windows path also works on macOS and Linux.</p></body></html>"))
+		self.BaseFolder.setPlaceholderText(_translate("Dialog", "base folder, e.g. Q:/proj/myproject"))
+		self.ChooseBaseFolderButton.setToolTip(_translate("Dialog", "<html><head/><body><p>Base folder that is cut off the front of every media path. Everything below it is recreated 1:1 in the collection folder, so the collected files can be copied back to their original location.<br/><br/>For instance:<br/>With the base folder Q:/proj/myproject, the file Q:/proj/myproject/comp/plates/file_####.exr will have the following destination in the final collected path:<br/><br/>../comp/plates/file_####.exr<br/><br/>Media outside the base folder is collected with its full path in ../_EXTERNAL/.<br/>Path substitutions from the Nuke preferences are applied, so a Windows path also works on macOS and Linux.</p></body></html>"))
+		self.ChooseBaseFolderButton.setText(_translate("Dialog", "folder"))
+		self.LBaseFolder.setToolTip(_translate("Dialog", "<html><head/><body><p>Base folder that is cut off the front of every media path. Everything below it is recreated 1:1 in the collection folder, so the collected files can be copied back to their original location.<br/><br/>For instance:<br/>With the base folder Q:/proj/myproject, the file Q:/proj/myproject/comp/plates/file_####.exr will have the following destination in the final collected path:<br/><br/>../comp/plates/file_####.exr<br/><br/>Media outside the base folder is collected with its full path in ../_EXTERNAL/.<br/>Path substitutions from the Nuke preferences are applied, so a Windows path also works on macOS and Linux.</p></body></html>"))
+		self.LBaseFolder.setText(_translate("Dialog", "media outside the base folder goes to _EXTERNAL/"))
 		self.SettingPages.setTabText(self.SettingPages.indexOf(self.MainSettings), _translate("Dialog", "media"))
 		self.CopyFontDir.setToolTip(_translate("Dialog", "<html><head/><body><p>If the current Nuke script has a custom Project Font Path set in Settings &gt; Node, collect this directory.</p></body></html>"))
 		self.CopyFontDir.setText(_translate("Dialog", "copy font directory (if any)"))
@@ -438,6 +462,8 @@ WIU_Gizmo = True
 WIU_Fonts = True
 WIU_ParentDirCount = 3
 WIU_NodeNameFolder = True
+WIU_KeepStructure = False
+WIU_BaseFolder = ''
 WIU_AppPath = ''
 
 WIU_SilentReturn = []
@@ -554,7 +580,7 @@ def RemapPath(pth):
 
 
 
-def _Start(silent = False, nk = '', startnow = False, out = '', nodenamefolder = True, parentdircount = 3, relinked = True, relativerelinked = True, media = True, skipdisablednodes = False, fonts = True, gizmos = True, csvcommas = False, licinteractive = False):
+def _Start(silent = False, nk = '', startnow = False, out = '', nodenamefolder = True, parentdircount = 3, relinked = True, relativerelinked = True, media = True, skipdisablednodes = False, fonts = True, gizmos = True, csvcommas = False, licinteractive = False, keepstructure = False, basefolder = ''):
 
 	# reset list
 	global WIU_SilentList
@@ -721,14 +747,33 @@ def _Start(silent = False, nk = '', startnow = False, out = '', nodenamefolder =
 
 		global WIU_NodeNameFolder
 		global WIU_ParentDirCount
+		global WIU_KeepStructure
+		global WIU_BaseFolder
 
 		# set node name folder to argument if the UI is not loaded
 		if silent:
 			WIU_NodeNameFolder = nodenamefolder
 			WIU_ParentDirCount = parentdircount
+			WIU_KeepStructure = keepstructure
+			WIU_BaseFolder = basefolder
 
 		# TCL eval
 		fullPath = evalTCL(fullPath)
+
+
+		# media, keeping the folder structure below the base folder
+		if i == 0 and WIU_KeepStructure and not project_dir:
+
+			slashPath = fullPath.replace('\\', '/')
+			baseFolder = evalTCL(WIU_BaseFolder).replace('\\', '/').rstrip('/')
+
+			# inside the base folder: keep everything below it
+			if baseFolder != '' and slashPath.lower().startswith(baseFolder.lower() + '/'):
+				return WIU_PackedPath + '/' + slashPath[len(baseFolder) + 1:]
+
+			# outside the base folder: keep the full path (drive 'Q:' becomes folder 'Q')
+			splitCleanPath = [s.replace(':', '') for s in slashPath.split('/') if s != '']
+			return WIU_PackedPath + '/_EXTERNAL/' + '/'.join(splitCleanPath)
 
 
 		# media (default)
@@ -1590,15 +1635,22 @@ def _Start(silent = False, nk = '', startnow = False, out = '', nodenamefolder =
 
 
 	# update the labels underneath the lists
-	def UpdateItemInfo(n = False, pd = False):
+	def UpdateItemInfo(n = False, pd = False, pm = False, bf = False):
 
 		global WIU_ParentDirCount
 		global WIU_NodeNameFolder
+		global WIU_KeepStructure
+		global WIU_BaseFolder
 
 		if pd:
 			WIU_ParentDirCount = WParentDirectories.value()
 		if n:
 			WIU_NodeNameFolder = WNodeNameFolder.isChecked()
+		if pm:
+			WIU_KeepStructure = WPathMode.currentIndex() == 1
+			PathModeWidgets()
+		if bf:
+			WIU_BaseFolder = WBaseFolder.text()
 
 		# check which list the currently selected item is in, and update its info
 		if WIgnoredLabel.isVisible():
@@ -1780,6 +1832,36 @@ def _Start(silent = False, nk = '', startnow = False, out = '', nodenamefolder =
 
 
 
+	# show the settings that belong to the chosen path mode
+	def PathModeWidgets():
+
+		WNodeNameFolder.setVisible(not WIU_KeepStructure)
+		WParentDirectories.setVisible(not WIU_KeepStructure)
+		WLParentDirectories.setVisible(not WIU_KeepStructure)
+		WBaseFolder.setVisible(WIU_KeepStructure)
+		WChooseBaseFolderButton.setVisible(WIU_KeepStructure)
+		WLBaseFolder.setVisible(WIU_KeepStructure)
+
+
+
+	def ChooseBaseFolder():
+
+		# open nuke file dialog
+		chosenPath = nuke.getFilename('WrapItUp - choose the base folder to keep the folder structure below')
+
+		if chosenPath is not None:
+
+			# make sure it is a folder
+			if os.path.isfile(chosenPath):
+				chosenPath = os.path.dirname(chosenPath)
+
+			WBaseFolder.setText(chosenPath.rstrip('/'))
+
+		# regain focus on form
+		window.activateWindow()
+
+
+
 	def ChoosePackedPath():
 
 		# open nuke file dialog
@@ -1823,6 +1905,10 @@ def _Start(silent = False, nk = '', startnow = False, out = '', nodenamefolder =
 		WStart.setEnabled(YesOrNo)
 		WRefresh.setEnabled(YesOrNo)
 		WParentDirectories.setEnabled(YesOrNo)
+		WPathMode.setEnabled(YesOrNo)
+		WBaseFolder.setEnabled(YesOrNo)
+		WChooseBaseFolderButton.setEnabled(YesOrNo)
+		WLBaseFolder.setEnabled(YesOrNo)
 		WRelinkPaths.setEnabled(YesOrNo)
 		WRelativeRelink.setEnabled(YesOrNo)
 		WNodeNameFolder.setEnabled(YesOrNo)
@@ -2054,7 +2140,7 @@ def _Start(silent = False, nk = '', startnow = False, out = '', nodenamefolder =
 		# write first lines of log
 		nukever = str(nuke.NUKE_VERSION_STRING)
 		nukescript  = nuke.root().name() if not silent else nk
-		params = CSV(["Used command-line/python function", str(silent)]) + '\n' + CSV(["Script path", nukescript]) + '\n' + CSV(["Folders with node names", str(WIU_NodeNameFolder)]) + '\n' + CSV(["Parent directory count", str(WIU_ParentDirCount)]) + '\n' + CSV(["Relinked", str(WIU_Relink)]) + '\n' + CSV(["Relative relinked", str(WIU_RelinkRelative)]) + '\n' + CSV(["Fonts", str(WIU_Fonts)]) + '\n' + CSV(["Gizmos", str(WIU_Gizmo)]) + '\n' + CSV(["License", 'nuke_i' if getLic() == '-ti' else 'nuke_r'])
+		params = CSV(["Used command-line/python function", str(silent)]) + '\n' + CSV(["Script path", nukescript]) + '\n' + CSV(["Folders with node names", str(WIU_NodeNameFolder)]) + '\n' + CSV(["Parent directory count", str(WIU_ParentDirCount)]) + '\n' + CSV(["Keep folder structure", str(WIU_KeepStructure)]) + '\n' + CSV(["Base folder", WIU_BaseFolder]) + '\n' + CSV(["Relinked", str(WIU_Relink)]) + '\n' + CSV(["Relative relinked", str(WIU_RelinkRelative)]) + '\n' + CSV(["Fonts", str(WIU_Fonts)]) + '\n' + CSV(["Gizmos", str(WIU_Gizmo)]) + '\n' + CSV(["License", 'nuke_i' if getLic() == '-ti' else 'nuke_r'])
 		WriteLog( WIU_Title + '\n' + 'Nuke version: ' + nukever + '\n\n' + params + '\n\n\n' + CSV(['TIME', 'STATUS', 'FILE (FROM)', 'FILE (TO)', 'NODE', 'KNOB', 'SIZE', 'RETURN']) + '\n', first = True )
 
 		# copy files
@@ -2436,6 +2522,10 @@ def _Start(silent = False, nk = '', startnow = False, out = '', nodenamefolder =
 		WNodeNameFolder = window.findChild(QtWidgets.QCheckBox, "NodeNameFolder")
 		WParentDirectories = window.findChild(QtWidgets.QSpinBox, "ParentDirectories")
 		WLParentDirectories = window.findChild(QtWidgets.QLabel, "LParentDirectories")
+		WPathMode = window.findChild(QtWidgets.QComboBox, "PathMode")
+		WBaseFolder = window.findChild(QtWidgets.QLineEdit, "BaseFolder")
+		WChooseBaseFolderButton = window.findChild(QtWidgets.QPushButton, "ChooseBaseFolderButton")
+		WLBaseFolder = window.findChild(QtWidgets.QLabel, "LBaseFolder")
 
 		WCopyFontDir = window.findChild(QtWidgets.QCheckBox, "CopyFontDir")
 		WCopyGizmos = window.findChild(QtWidgets.QCheckBox, "CopyGizmos")
@@ -2481,6 +2571,9 @@ def _Start(silent = False, nk = '', startnow = False, out = '', nodenamefolder =
 		WRelativeRelink.stateChanged.connect(lambda:RelinksInList(rr = True))
 		WNodeNameFolder.stateChanged.connect(lambda:UpdateItemInfo(n = True))
 		WParentDirectories.valueChanged.connect(lambda:UpdateItemInfo(pd = True))
+		WPathMode.currentIndexChanged.connect(lambda:UpdateItemInfo(pm = True))
+		WBaseFolder.textChanged.connect(lambda:UpdateItemInfo(bf = True))
+		WChooseBaseFolderButton.clicked.connect(lambda:ChooseBaseFolder())
 
 		WCopyFontDir.stateChanged.connect(lambda:AddOnsInList(f = True))
 		WCopyGizmos.stateChanged.connect(lambda:AddOnsInList(g = True))
@@ -2498,6 +2591,9 @@ def _Start(silent = False, nk = '', startnow = False, out = '', nodenamefolder =
 		# hide ui elements, set enable/disable state
 		ButtonsAllowed(True)
 		WIgnoredLabel.setVisible(False)
+		WPathMode.setCurrentIndex(1 if WIU_KeepStructure else 0)
+		WBaseFolder.setText(WIU_BaseFolder)
+		PathModeWidgets()
 
 
 		# show the UI window
@@ -2518,7 +2614,7 @@ def _Start(silent = False, nk = '', startnow = False, out = '', nodenamefolder =
 
 
 # python function start
-def WrapItUp(fromterminal = False, nk = '', startnow = False, out = '', nodenamefolder = True, parentdircount = 3, relinked = True, relativerelinked = True, media = True, skipdisablednodes = False, fonts = True, gizmos = True, csvcommas = False, licinteractive = False):
+def WrapItUp(fromterminal = False, nk = '', startnow = False, out = '', nodenamefolder = True, parentdircount = 3, relinked = True, relativerelinked = True, media = True, skipdisablednodes = False, fonts = True, gizmos = True, csvcommas = False, licinteractive = False, keepstructure = False, basefolder = ''):
 
 	global WIU_AppPath
 
@@ -2579,6 +2675,8 @@ def WrapItUp(fromterminal = False, nk = '', startnow = False, out = '', nodename
 				['Output path\t', out],
 				['Node name folders', nodenamefolder],
 				['Parent dir count', parentdircount],
+				['Keep structure', keepstructure],
+				['Base folder\t', basefolder],
 				['Relink\t', relinked],
 				['Relink relative', relativerelinked],
 				['media\t', media],
@@ -2595,7 +2693,7 @@ def WrapItUp(fromterminal = False, nk = '', startnow = False, out = '', nodename
 			print(param)
 
 			# only print preview
-			returnedFiles = _Start(silent, nk, False, out, nodenamefolder, parentdircount, relinked, relativerelinked, media, skipdisablednodes, fonts, gizmos, csvcommas, licinteractive)
+			returnedFiles = _Start(silent, nk, False, out, nodenamefolder, parentdircount, relinked, relativerelinked, media, skipdisablednodes, fonts, gizmos, csvcommas, licinteractive, keepstructure, basefolder)
 			returnedStr = ''
 			for i in returnedFiles:
 				returnedStr += '\n' + WIU_Log + str(i)
@@ -2610,7 +2708,7 @@ def WrapItUp(fromterminal = False, nk = '', startnow = False, out = '', nodename
 				print('\n' + WIU_Log + 'Starting...' + '\n')
 
 				# begin
-				_Start(silent, nk, startnow, out, nodenamefolder, parentdircount, relinked, relativerelinked, media, skipdisablednodes, fonts, gizmos, csvcommas, licinteractive)
+				_Start(silent, nk, startnow, out, nodenamefolder, parentdircount, relinked, relativerelinked, media, skipdisablednodes, fonts, gizmos, csvcommas, licinteractive, keepstructure, basefolder)
 
 	
 	# if running with UI in Nuke
@@ -2695,6 +2793,24 @@ if __name__ == "__main__":
 				del c[index]
 				break
 
+		# keep the folder structure below a base folder
+		aKeepStructure = False
+		for index, arg in enumerate(c):
+			if arg in ['-ks']:
+				aKeepStructure = True
+				del c[index]
+				break
+
+		# base folder (implies -ks)
+		aBaseFolder = ''
+		for index, arg in enumerate(c):
+			if arg in ['-base'] and len(c) > index + 1:
+				aBaseFolder = c[index + 1]
+				aKeepStructure = True
+				del c[index]
+				del c[index]
+				break
+
 		# relinked
 		aReli = True
 		for index, arg in enumerate(c):
@@ -2757,9 +2873,9 @@ if __name__ == "__main__":
 
 		# error handling
 		if err:
-			print(WIU_Log + 'Usage:\n-nk <nukescript path> (required)\n-o <output folder> (required)\n-s (start now - if not, only a preview list of the files to be processed will be returned)\n-n (disable: place media in node name folder)\n-pd <parent directory count> (default: 3)\n-r (disable: make relinked .nk)\n-rr (disable: make relative relinked .nk)\n-m (disable: collect media)\n-f (disable: collect font folder)\n-g (disable: collect gizmos)\n-csvcomma (use commas instead of semicolons as the CSV separator)')
+			print(WIU_Log + 'Usage:\n-nk <nukescript path> (required)\n-o <output folder> (required)\n-s (start now - if not, only a preview list of the files to be processed will be returned)\n-n (disable: place media in node name folder)\n-pd <parent directory count> (default: 3)\n-ks (keep the full folder structure instead of the last parent directories)\n-base <base folder> (cut this folder off the front of media paths and keep the structure below it, implies -ks)\n-r (disable: make relinked .nk)\n-rr (disable: make relative relinked .nk)\n-m (disable: collect media)\n-f (disable: collect font folder)\n-g (disable: collect gizmos)\n-csvcomma (use commas instead of semicolons as the CSV separator)')
 		else:
-			WrapItUp(fromterminal = True, nk = aNK, startnow = aStart, out = aOut, nodenamefolder = aNodeName, parentdircount = aDirCount, relinked = aReli, relativerelinked = aReliRela, media = aMedia, skipdisablednodes = aSkipDisabledNodes, fonts = aFonts, gizmos = aGizmos, csvcommas = aCSV, licinteractive = aLicInteractive)
+			WrapItUp(fromterminal = True, nk = aNK, startnow = aStart, out = aOut, nodenamefolder = aNodeName, parentdircount = aDirCount, relinked = aReli, relativerelinked = aReliRela, media = aMedia, skipdisablednodes = aSkipDisabledNodes, fonts = aFonts, gizmos = aGizmos, csvcommas = aCSV, licinteractive = aLicInteractive, keepstructure = aKeepStructure, basefolder = aBaseFolder)
 
 
 	else:
