@@ -445,6 +445,8 @@ WIU_SilentList = []
 
 WIU_MediaDataNotIgnored = []
 
+WIU_PathRemaps = []
+
 
 
 # bytes to readable string
@@ -470,6 +472,9 @@ def BytesToString(B):
 
 def evalTCL(text):
 
+	# remap before TCL, which would eat the backslashes of windows paths
+	text = RemapPath(text)
+
 	val = ''
 	try:
 		val = nuke.tcl("[return \"" + text + "\"]")
@@ -481,7 +486,70 @@ def evalTCL(text):
 	if type(val) != str:
 		val = text
 	
-	return val
+	# remap again for paths that only appear after TCL evaluation
+	return RemapPath(val)
+
+
+
+# reads the path substitutions (Preferences > General > Path Substitutions) as [from, to] pairs for this platform
+def ReadPathRemaps():
+
+	# the knob stores a flat list of 'windows;mac;linux;' triplets
+	remapString = ''
+	try:
+		remapString = nuke.toNode('preferences')['platformPathRemaps'].toScript()
+	except Exception as e:
+		pass
+
+	# preferences are not loaded in terminal mode, read them from the preferences file instead
+	if remapString == '':
+		prefsFile = os.path.join(os.path.expanduser('~'), '.nuke', 'preferences' + str(nuke.NUKE_VERSION_MAJOR) + '.' + str(nuke.NUKE_VERSION_MINOR) + '.nk')
+		try:
+			with open(prefsFile, 'r') as f:
+				match = re.search(r'platformPathRemaps\s+"((?:[^"\\]|\\.)*)"', f.read())
+			if match:
+				remapString = match.group(1)
+		except Exception as e:
+			pass
+
+	# column of the current platform
+	if sys.platform.startswith('win'):
+		platformIndex = 0
+	elif sys.platform == 'darwin':
+		platformIndex = 1
+	else:
+		platformIndex = 2
+
+	# map every other platform's path of a row to this platform's path
+	entries = [e.strip().replace('\\', '/').rstrip('/') for e in remapString.split(';')]
+	remaps = []
+	for r in range(0, len(entries) - 2, 3):
+		row = entries[r:r + 3]
+		target = row[platformIndex]
+		if target in ('', '-'):
+			continue
+		for c in range(3):
+			if c != platformIndex and row[c] not in ('', '-'):
+				remaps.append([row[c], target])
+
+	# longest prefix first, so nested paths win over their parents
+	remaps.sort(key=lambda m: len(m[0]), reverse=True)
+
+	return remaps
+
+
+
+# applies the path substitutions to a path, like Nuke does when reading files
+def RemapPath(pth):
+
+	slashPath = pth.replace('\\', '/')
+	for remapFrom, remapTo in WIU_PathRemaps:
+
+		# compare case-insensitive (windows drive letters), only match whole path components
+		if slashPath.lower().startswith(remapFrom.lower()) and slashPath[len(remapFrom):len(remapFrom) + 1] in ('', '/'):
+			return remapTo + slashPath[len(remapFrom):]
+
+	return pth
 
 
 
@@ -492,6 +560,10 @@ def _Start(silent = False, nk = '', startnow = False, out = '', nodenamefolder =
 	global WIU_SilentList
 	WIU_SilentList = []
 
+	# read the path substitutions first, all knob paths are remapped with them
+	global WIU_PathRemaps
+	WIU_PathRemaps = ReadPathRemaps()
+
 
 	# add project directory to start of path (or get project dir path)
 	def ProjectDirectory(pth = ''):
@@ -501,7 +573,7 @@ def _Start(silent = False, nk = '', startnow = False, out = '', nodenamefolder =
 		WIU_ProjectDir = True
 
 		# get project directory
-		projectdir = nuke.root()['project_directory'].getValue()
+		projectdir = RemapPath(nuke.root()['project_directory'].getValue())
 
 		# remove double slash
 		if projectdir.endswith('/') and pth.startswith('/'):
